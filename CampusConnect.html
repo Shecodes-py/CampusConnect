@@ -1,0 +1,363 @@
+<!-- Chosen Palette: Warm Neutrals & Ocean Blue Accent -->
+<!-- Application Structure Plan: Single-Page Dashboard with a fixed vertical sidebar navigation and a dynamic content area. This structure was chosen to logically separate the three distinct functional pillars (Productivity, Safety, Welfare) while ensuring the user remains authenticated within the single "CampusConnect" environment, strongly reinforcing the "Unified Ecosystem" concept. The flow prioritizes immediate access to all core services. -->
+<!-- Visualization & Content Choices: Summary: The primary goal is architectural demonstration and interaction specific to the app's unique logic (FindIt Matching). The Live Map is mocked using an HTML Grid/Flex layout (Goal: Status/Location -> Viz: HTML Grid -> Interaction: Filter -> Justification: Highlighting availability status without relying on external map APIs for the MVP). Lost & Found uses card elements (Goal: Match/Recovery -> Viz: Card List -> Interaction: Click-to-Match Simulation -> Justification: Proves the core FindIt engine concept). Vendor Reviews use cards with mock star ratings (Goal: Transparency/Quality -> Viz: Card List -> Interaction: Filter by Rating -> Justification: Supports the Welfare Hub's core value). -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusConnect Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; }
+        .sidebar { background-color: #1a237e; }
+        .nav-item.active { background-color: #3f51b5; border-radius: 8px; }
+        .card { transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); }
+        .star-filled { color: #f9b208; }
+        .star-empty { color: #d1d5db; }
+        /* Mock Map Styling */
+        .map-grid-item { border: 1px solid #e0e0e0; min-height: 100px; display: flex; flex-direction: column; justify-content: space-between; padding: 12px; border-radius: 8px; background-color: #ffffff; }
+        .status-available { background-color: #38a169; } /* Green */
+        .status-quiet { background-color: #4299e1; } /* Blue */
+        .status-full { background-color: #e53e3e; } /* Red */
+        .matched-item { border: 3px solid #f9b208; box-shadow: 0 0 15px rgba(249, 178, 8, 0.5); }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar w-64 p-4 flex-shrink-0 text-white flex flex-col">
+        <h1 class="text-2xl font-bold mb-8 text-white tracking-wider">CampusConnect</h1>
+        <div class="space-y-3">
+            <button id="nav-productivity" class="nav-item w-full flex items-center p-3 font-semibold text-lg hover:bg-indigo-600 active" data-target="productivity">
+                <span class="mr-3">⏱️</span> Productivity Hub
+            </button>
+            <button id="nav-safety" class="nav-item w-full flex items-center p-3 font-semibold text-lg hover:bg-indigo-600" data-target="safety">
+                <span class="mr-3">🛡️</span> Safety Hub (FindIt)
+            </button>
+            <button id="nav-welfare" class="nav-item w-full flex items-center p-3 font-semibold text-lg hover:bg-indigo-600" data-target="welfare">
+                <span class="mr-3">💸</span> Welfare Hub (Eats)
+            </button>
+        </div>
+        <div class="mt-auto pt-6 text-sm text-indigo-300">
+            <p>User: Jane Doe (Student)</p>
+            <p class="font-light">ID: 94819238-A</p>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto p-8">
+        
+        <!-- Productivity Hub (Live Map Mockup) -->
+        <section id="productivity" class="module-content">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Productivity Hub: Real-Time Resource Map</h2>
+            <p class="text-gray-600 mb-6">Instantly find available study spaces, quiet zones, and functioning equipment to maximize your study time.</p>
+
+            <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-6">
+                <select id="map-filter" class="p-3 border border-gray-300 rounded-lg text-gray-700 w-full md:w-64">
+                    <option value="all">Filter by Status (All)</option>
+                    <option value="Available">Available (Green)</option>
+                    <option value="Quiet">Quiet (Blue)</option>
+                    <option value="Full">Full (Red)</option>
+                </select>
+                <input type="text" id="resource-search" placeholder="Search for 'Printer' or 'Lab'" class="p-3 border border-gray-300 rounded-lg text-gray-700 w-full flex-1">
+            </div>
+
+            <div id="map-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Map items will be populated here -->
+            </div>
+        </section>
+
+        <!-- Safety Hub (FindIt - Matching Simulation) -->
+        <section id="safety" class="module-content hidden">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Community & Safety Hub: FindIt</h2>
+            <p class="text-gray-600 mb-6">Securely report lost or found items. Our automated matching engine connects owners and finders instantly.</p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-xl font-semibold mb-4 text-red-600">Lost Items (Posted by Owners)</h3>
+                    <div id="lost-items" class="space-y-4">
+                        <!-- Lost items populated here -->
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold mb-4 text-green-600">Found Items (Reported by Finders)</h3>
+                    <div id="found-items" class="space-y-4">
+                        <!-- Found items populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="match-status" class="mt-8 p-4 text-center bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg hidden">
+                <span class="font-bold">Match Found!</span> Click "Secure Chat" to coordinate recovery.
+            </div>
+
+        </section>
+
+        <!-- Welfare Hub (Vendor Reviews) -->
+        <section id="welfare" class="module-content hidden">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Student Welfare Hub: Verified Vendors</h2>
+            <p class="text-gray-600 mb-6">View transparent hygiene ratings and compare prices before you buy. Community-powered data for safer, smarter spending.</p>
+
+            <div class="flex space-x-4 mb-6">
+                <select id="vendor-filter" class="p-3 border border-gray-300 rounded-lg text-gray-700 w-full md:w-64">
+                    <option value="all">Filter by Category (All)</option>
+                    <option value="Food">Food & Drinks</option>
+                    <option value="Print">Printing Services</option>
+                </select>
+                <button id="rating-filter-btn" class="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Show 4+ Star Vendors Only</button>
+            </div>
+            
+            <div id="vendor-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Vendor cards will be populated here -->
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const appData = {
+            // --- PRODUCTIVITY HUB DATA (MOCK MAP) ---
+            spaces: [
+                { id: 1, name: "New Library 3rd Floor", type: "Quiet Zone", status: "Available" },
+                { id: 2, name: "Mass Comm Lab Printer 2", type: "Printer", status: "Full" },
+                { id: 3, name: "Engineering Seminar Room C", type: "Study Room", status: "Quiet" },
+                { id: 4, name: "Faculty of Arts Common Area", type: "Study Room", status: "Available" },
+                { id: 5, name: "ICT Centre Wifi Hotspot", type: "Resource", status: "Available" },
+                { id: 6, name: "New Library Basement", type: "Quiet Zone", status: "Full" },
+            ],
+
+            // --- SAFETY HUB DATA (MOCK LOST & FOUND) ---
+            lostItems: [
+                { id: 101, category: "ID Card", description: "Blue Unilag ID Card, F. Engineering", location: "New Library", status: "Unrecovered", matchId: 202 },
+                { id: 102, category: "Phone", description: "Black iPhone 11 Pro Max, cracked screen", location: "Faculty of Arts", status: "Unrecovered", matchId: null },
+                { id: 103, category: "Wallet", description: "Brown leather wallet, cash inside", location: "Bus Stop", status: "Unrecovered", matchId: 201 },
+            ],
+            foundItems: [
+                { id: 201, category: "Wallet", description: "Brown leather wallet, found near Main Gate", location: "Main Gate Security", status: "Unclaimed", matchId: 103 },
+                { id: 202, category: "ID Card", description: "Unilag ID Card, found near Cafeteria", location: "Cafeteria", status: "Unclaimed", matchId: 101 },
+                { id: 203, category: "Book", description: "Calculus Textbook, found in Lecture Theatre", location: "LT 101", status: "Unclaimed", matchId: null },
+            ],
+
+            // --- WELFARE HUB DATA (MOCK VENDORS) ---
+            vendors: [
+                { id: 301, name: "Mama T's Buka", category: "Food", hygiene: 4.5, taste: 4.8, price: 1500, lastReview: "2 days ago" },
+                { id: 302, name: "Quick Print Center", category: "Print", hygiene: 3.2, taste: 0, price: 50, lastReview: "1 week ago" },
+                { id: 303, name: "Fine Taste Canteen", category: "Food", hygiene: 2.1, taste: 3.5, price: 1800, lastReview: "1 day ago" },
+                { id: 304, name: "The Paper Stop", category: "Print", hygiene: 4.1, taste: 0, price: 70, lastReview: "3 days ago" },
+                { id: 305, name: "Mr. Chef Fast Food", category: "Food", hygiene: 4.0, taste: 4.0, price: 1200, lastReview: "2 hours ago" },
+            ]
+        };
+
+        const elements = {
+            navButtons: document.querySelectorAll('.nav-item'),
+            moduleContents: document.querySelectorAll('.module-content'),
+            mapGrid: document.getElementById('map-grid'),
+            mapFilter: document.getElementById('map-filter'),
+            resourceSearch: document.getElementById('resource-search'),
+            lostItemsContainer: document.getElementById('lost-items'),
+            foundItemsContainer: document.getElementById('found-items'),
+            matchStatus: document.getElementById('match-status'),
+            vendorList: document.getElementById('vendor-list'),
+            vendorFilter: document.getElementById('vendor-filter'),
+            ratingFilterBtn: document.getElementById('rating-filter-btn'),
+        };
+
+        let currentActiveModule = 'productivity';
+        
+        // Utility Functions
+        const createStarRating = (rating) => {
+            let html = '';
+            for (let i = 1; i <= 5; i++) {
+                html += `<span class="${i <= rating ? 'star-filled' : 'star-empty'}">★</span>`;
+            }
+            return html;
+        };
+
+        const toKobo = (naira) => `₦${naira.toLocaleString('en-NG')}`;
+
+        // --- CORE NAVIGATION LOGIC ---
+        const switchModule = (moduleId) => {
+            elements.moduleContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            elements.navButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            document.getElementById(moduleId).classList.remove('hidden');
+            document.querySelector(`[data-target="${moduleId}"]`).classList.add('active');
+            currentActiveModule = moduleId;
+        };
+
+        elements.navButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const moduleId = e.currentTarget.dataset.target;
+                switchModule(moduleId);
+            });
+        });
+
+        // --- MODULE 1: PRODUCTIVITY HUB LOGIC ---
+        const renderMapGrid = (data) => {
+            elements.mapGrid.innerHTML = data.map(space => `
+                <div class="map-grid-item shadow-md ${space.type.toLowerCase().includes('printer') || space.type.toLowerCase().includes('resource') ? 'bg-indigo-50' : 'bg-white'}">
+                    <div class="text-lg font-semibold text-gray-800">${space.name}</div>
+                    <div class="text-sm text-gray-500">${space.type}</div>
+                    <div class="mt-2 flex justify-between items-center">
+                        <span class="px-3 py-1 text-sm font-bold text-white rounded-full ${space.status === 'Available' ? 'status-available' : space.status === 'Quiet' ? 'status-quiet' : 'status-full'}">
+                            ${space.status}
+                        </span>
+                        <button class="text-blue-600 hover:text-blue-800 text-sm font-semibold">Update Status</button>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        const filterMap = () => {
+            const statusFilter = elements.mapFilter.value;
+            const searchTerm = elements.resourceSearch.value.toLowerCase();
+            
+            const filteredData = appData.spaces.filter(space => {
+                const statusMatch = statusFilter === 'all' || space.status === statusFilter;
+                const searchMatch = space.name.toLowerCase().includes(searchTerm) || space.type.toLowerCase().includes(searchTerm);
+                return statusMatch && searchMatch;
+            });
+            renderMapGrid(filteredData);
+        };
+
+        elements.mapFilter.addEventListener('change', filterMap);
+        elements.resourceSearch.addEventListener('input', filterMap);
+        
+        // --- MODULE 2: SAFETY HUB LOGIC ---
+        const renderItemCard = (item, type) => {
+            const isLost = type === 'Lost';
+            const statusColor = isLost ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
+            
+            return `
+                <div class="card p-4 border rounded-lg shadow-sm cursor-pointer hover:border-blue-500 transition duration-150" data-item-id="${item.id}" data-match-id="${item.matchId}" data-item-type="${type}">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-gray-900">${item.category}</span>
+                        <span class="text-xs font-medium px-2 py-0.5 rounded-full ${statusColor}">${isLost ? 'LOST' : 'FOUND'}</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1">${item.description}</p>
+                    <p class="text-xs text-gray-500 mt-2">Location: ${item.location}</p>
+                    <button class="secure-chat-btn mt-3 text-blue-600 text-sm hidden">Secure Chat 💬</button>
+                </div>
+            `;
+        };
+
+        const renderSafetyHub = () => {
+            elements.lostItemsContainer.innerHTML = appData.lostItems.map(item => renderItemCard(item, 'Lost')).join('');
+            elements.foundItemsContainer.innerHTML = appData.foundItems.map(item => renderItemCard(item, 'Found')).join('');
+        };
+
+        const handleMatchSimulation = (e) => {
+            const card = e.target.closest('.card');
+            if (!card) return;
+
+            const itemId = card.dataset.itemId;
+            const matchId = card.dataset.matchId;
+            const itemType = card.dataset.itemType;
+
+            // Clear previous highlights and status
+            document.querySelectorAll('.card').forEach(c => {
+                c.classList.remove('matched-item');
+                c.querySelector('.secure-chat-btn').classList.add('hidden');
+            });
+            elements.matchStatus.classList.add('hidden');
+
+            // Process Match
+            if (matchId && matchId !== 'null') {
+                const partnerCard = document.querySelector(`.card[data-item-id="${matchId}"][data-item-type="${itemType === 'Lost' ? 'Found' : 'Lost'}"]`);
+
+                if (partnerCard) {
+                    card.classList.add('matched-item');
+                    partnerCard.classList.add('matched-item');
+                    
+                    card.querySelector('.secure-chat-btn').classList.remove('hidden');
+                    partnerCard.querySelector('.secure-chat-btn').classList.remove('hidden');
+
+                    elements.matchStatus.classList.remove('hidden');
+                }
+            }
+        };
+
+        elements.lostItemsContainer.addEventListener('click', handleMatchSimulation);
+        elements.foundItemsContainer.addEventListener('click', handleMatchSimulation);
+
+
+        // --- MODULE 3: WELFARE HUB LOGIC ---
+        let showHighRated = false;
+
+        const renderVendorList = (data) => {
+            elements.vendorList.innerHTML = data.map(vendor => `
+                <div class="card p-5 bg-white rounded-xl shadow-lg border border-gray-100">
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-xl font-bold text-gray-900">${vendor.name}</h3>
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-200 text-gray-700">${vendor.category}</span>
+                    </div>
+                    <p class="text-gray-500 mt-1">Location: Main Market Area</p>
+                    
+                    <div class="mt-4 border-t pt-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Avg. Hygiene:</span>
+                            <span class="text-lg">${createStarRating(vendor.hygiene)} (${vendor.hygiene})</span>
+                        </div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Taste Score:</span>
+                            <span class="text-lg">${createStarRating(vendor.taste)} (${vendor.taste || 'N/A'})</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <p class="font-semibold text-blue-800">Community Price Check:</p>
+                        <p class="text-lg font-extrabold text-blue-900">${toKobo(vendor.price)} <span class="text-sm font-normal text-gray-500"> (Jollof & Chicken)</span></p>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        const filterVendors = () => {
+            const categoryFilter = elements.vendorFilter.value;
+            
+            let filteredData = appData.vendors;
+
+            if (categoryFilter !== 'all') {
+                filteredData = filteredData.filter(v => v.category === categoryFilter);
+            }
+            
+            if (showHighRated) {
+                filteredData = filteredData.filter(v => v.hygiene >= 4 || v.taste >= 4);
+            }
+
+            renderVendorList(filteredData);
+        };
+
+        elements.vendorFilter.addEventListener('change', filterVendors);
+        elements.ratingFilterBtn.addEventListener('click', () => {
+            showHighRated = !showHighRated;
+            elements.ratingFilterBtn.classList.toggle('bg-blue-600');
+            elements.ratingFilterBtn.classList.toggle('bg-blue-800');
+            elements.ratingFilterBtn.textContent = showHighRated ? 'Showing 4+ Star Vendors' : 'Show 4+ Star Vendors Only';
+            filterVendors();
+        });
+
+
+        // --- INITIALIZATION ---
+        const initializeApp = () => {
+            // Load initial content for each module
+            renderMapGrid(appData.spaces);
+            renderSafetyHub();
+            renderVendorList(appData.vendors);
+            
+            // Set the initial view to Productivity Hub
+            switchModule('productivity');
+        };
+
+        window.onload = initializeApp;
+    </script>
+</body>
+</html>
